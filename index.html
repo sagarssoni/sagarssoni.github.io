@@ -64,13 +64,14 @@ h1,h2,h3{font-family:var(--display);font-weight:600;letter-spacing:-0.01em;text-
 .glass i:nth-child(4){-webkit-backdrop-filter:blur(7px);backdrop-filter:blur(7px);-webkit-mask-image:linear-gradient(to top,transparent 42%,#000 56%,#000 70%,transparent 84%);mask-image:linear-gradient(to top,transparent 42%,#000 56%,#000 70%,transparent 84%)}
 .glass i:nth-child(5){-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);-webkit-mask-image:linear-gradient(to top,transparent 56%,#000 70%,#000 84%,transparent 98%);mask-image:linear-gradient(to top,transparent 56%,#000 70%,#000 84%,transparent 98%)}
 .glass i:nth-child(6){-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);-webkit-mask-image:linear-gradient(to top,transparent 70%,#000 84%);mask-image:linear-gradient(to top,transparent 70%,#000 84%)}
+@media (max-width:760px),(pointer:coarse){.glass i:nth-child(1),.glass i:nth-child(2),.glass i:nth-child(3),.glass i:nth-child(5){-webkit-backdrop-filter:none;backdrop-filter:none}.glass i:nth-child(4){-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}.glass i:nth-child(6){-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}}
 .topbar-in{position:relative;display:flex;justify-content:flex-end;align-items:center;gap:clamp(6px,2vw,18px);height:60px}
 .topnav{display:flex;flex-wrap:nowrap;gap:clamp(8px,2.6vw,22px);pointer-events:auto;white-space:nowrap}
 .topnav a{font-family:var(--mono);font-size:clamp(10px,2.7vw,13px);color:var(--muted);text-decoration:none;letter-spacing:.02em}
 .topnav a:hover,.topnav a:focus-visible{color:var(--fg)}
 section,header.hero{scroll-margin-top:84px}
 @media (prefers-reduced-motion: no-preference){html{scroll-behavior:smooth}}
-#name{position:absolute;left:clamp(16px,4vw,40px);top:0;font-size:clamp(44px,7.4vw,84px);line-height:1;font-weight:700;letter-spacing:-0.025em;margin:0;white-space:nowrap;transform-origin:left top;transform:translateY(var(--ty,90px)) scale(var(--s,1));will-change:transform;pointer-events:auto}
+#name{position:absolute;left:clamp(16px,4vw,40px);top:0;font-size:clamp(44px,7.4vw,84px);line-height:1;font-weight:700;letter-spacing:-0.025em;margin:0;white-space:nowrap;transform-origin:left top;transform:translate3d(0,90px,0);will-change:transform;backface-visibility:hidden;pointer-events:auto}
 .theme{flex:none;color:var(--muted);opacity:.6;transition:opacity .2s,color .2s;background:transparent;border:0;border-radius:6px;padding:0;width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;pointer-events:auto}
 .theme svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
 .theme:hover,.theme:focus-visible{opacity:1;color:var(--fg)}
@@ -461,7 +462,7 @@ footer{border-top:1px solid var(--rule);padding-block:28px 40px;display:flex;jus
   // water-surface dot field: a 2D wave simulation; cards are solid walls, so waves reflect and interfere
   (function(){
     var cv=document.getElementById('bg'),g=cv.getContext('2d');
-    var G=22,C=11,W,H,dpr,cols,rows,A,B,M,raf=0,idle=0,F=1,DAMP=0.988;
+    var G=22,C=11,W,H,dpr,cols,rows,A,B,M,raf=0,idle=0,F=1,DAMP=0.988,fgc=null;
     var cards=[].slice.call(document.querySelectorAll('.card'));
     var reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
     var lx=null,ly=null;
@@ -500,7 +501,7 @@ footer{border-top:1px solid var(--rule);padding-block:28px 40px;display:flex;jus
     function draw(){
       raf=0;mask();
       var e=reduce?0:step();
-      var fg=getComputedStyle(document.documentElement).getPropertyValue('--fg').trim();
+      if(!fgc)fgc=getComputedStyle(document.documentElement).getPropertyValue('--fg').trim();var fg=fgc;
       g.clearRect(0,0,W,H);g.fillStyle=fg;
       for(var y=G/2;y<H;y+=G){var cy=Math.round(y/C);for(var x=G/2;x<W;x+=G){
         var cx=Math.round(x/C),i=cy*cols+cx,h=A[i]||0;
@@ -531,9 +532,9 @@ footer{border-top:1px solid var(--rule);padding-block:28px 40px;display:flex;jus
     addEventListener('touchcancel',function(){ts=null;lx=null},{passive:true});
     document.addEventListener('mouseleave',function(){lx=null});
     addEventListener('pointerdown',function(e){if(reduce||e.pointerType==='touch')return;drop(e.clientX,e.clientY,400,3.2)},{passive:true});
-    addEventListener('scroll',kick,{passive:true});
+    addEventListener('scroll',function(){if(idle<30)kick()},{passive:true});
     addEventListener('resize',size);
-    new MutationObserver(kick).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+    new MutationObserver(function(){fgc=null;kick()}).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
     if(window.matchMedia){var m=matchMedia('(prefers-color-scheme: dark)');(m.addEventListener?m.addEventListener('change',kick):m.addListener(kick))}
     size();
   })();
@@ -543,7 +544,7 @@ footer{border-top:1px solid var(--rule);padding-block:28px 40px;display:flex;jus
     var bar=document.getElementById('topbar'),nm=document.getElementById('name'),sp=document.getElementById('namespace');
     var start=90,target=0,sMin=0.4,range=1;
     function measure(){
-      nm.style.setProperty('--s',1);
+      nm.style.transform='none';lastP=-1;
       var h=nm.offsetHeight;sp.style.height=h+'px';
       var barTop=bar.getBoundingClientRect().top+(parseFloat(getComputedStyle(bar).paddingTop)||0);
       start=sp.getBoundingClientRect().top+scrollY-barTop;
@@ -551,13 +552,18 @@ footer{border-top:1px solid var(--rule);padding-block:28px 40px;display:flex;jus
       sMin=Math.min(1,Math.max(16,Math.min(26,innerWidth*0.05))/fs);
       target=(60-h*sMin)/2;range=Math.max(1,start-target);update();
     }
+    var ticking=false,lastD=null,lastS=null,lastP=-1;
     function update(){
-      var p=Math.min(1,Math.max(0,scrollY/range));
-      bar.classList.toggle('docked',scrollY>4);bar.classList.toggle('settled',p>=0.98);
-      nm.style.setProperty('--ty',(start-(start-target)*p)+'px');
-      nm.style.setProperty('--s',1-(1-sMin)*p);
+      ticking=false;
+      var y=window.scrollY,p=Math.min(1,Math.max(0,y/range));
+      var d=y>4,st=p>=0.98;
+      if(d!==lastD){bar.classList.toggle('docked',d);lastD=d}
+      if(st!==lastS){bar.classList.toggle('settled',st);lastS=st}
+      if(p===lastP&&p>=1)return;lastP=p;
+      nm.style.transform='translate3d(0,'+(start-(start-target)*p).toFixed(2)+'px,0) scale('+(1-(1-sMin)*p).toFixed(4)+')';
     }
-    addEventListener('scroll',update,{passive:true});
+    function onScroll(){if(!ticking){ticking=true;requestAnimationFrame(update)}}
+    addEventListener('scroll',onScroll,{passive:true});
     addEventListener('resize',measure);
     if(document.fonts&&document.fonts.ready)document.fonts.ready.then(measure);
     measure();
