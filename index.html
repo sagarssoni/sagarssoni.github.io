@@ -482,7 +482,7 @@ footer{border-top:1px solid var(--rule);padding-block:28px 40px;display:flex;jus
     function size(){
       dpr=Math.min(2,window.devicePixelRatio||1);W=innerWidth;H=innerHeight;
       cv.width=W*dpr;cv.height=H*dpr;g.setTransform(dpr,0,0,dpr,0,0);
-      mob=!!(window.matchMedia&&matchMedia('(pointer: coarse)').matches&&!matchMedia('(any-pointer: fine)').matches);F=mob?0.55:1;G=mob?18:22;C=11;DAMP=0.988;
+      mob=!!(window.matchMedia&&matchMedia('(pointer: coarse)').matches&&!matchMedia('(any-pointer: fine)').matches);F=mob?0.5:1;G=mob?18:22;C=mob?9:11;DAMP=0.988;
       cols=Math.ceil(W/C)+2;rows=Math.ceil(H/C)+2;
       A=new Float32Array(cols*rows);B=new Float32Array(cols*rows);M=new Uint8Array(cols*rows);
       kick();
@@ -511,17 +511,18 @@ footer{border-top:1px solid var(--rule);padding-block:28px 40px;display:flex;jus
       for(var i=0;i<M.length;i++)if(M[i])A[i]=0;
       return e;
     }
+    var LAM=40,lastTX=0,lastTY=0,lastMove=0;
     function ring(x,y,str){rings.push({x:x,y:y,t0:performance.now(),s:str});if(rings.length>12)rings.shift();kick()}
     function drawRings(){
       var now=performance.now();
-      rings=rings.filter(function(r){return now-r.t0<1500});
+      rings=rings.filter(function(r){return now-r.t0<1700});
       if(!fgc)fgc=getComputedStyle(document.documentElement).getPropertyValue('--fg').trim();
       g.clearRect(0,0,W,H);g.fillStyle=fgc;
       var maxR=Math.max(W,H)*0.55;
       for(var y=G/2;y<H;y+=G)for(var x=G/2;x<W;x+=G){
         var k=0,ox=0,oy=0;
-        for(var i=0;i<rings.length;i++){var r=rings[i],t=(now-r.t0)/1500,rad=t*maxR*r.s,dx=x-r.x,dy=y-r.y,d=Math.sqrt(dx*dx+dy*dy);
-          var band=1-Math.abs(d-rad)/22;if(band<=0)continue;var a=band*band*(1-t)*r.s;
+        for(var i=0;i<rings.length;i++){var r=rings[i],t=(now-r.t0)/1700,rad=t*maxR*r.s,dx=x-r.x,dy=y-r.y,d=Math.sqrt(dx*dx+dy*dy);
+          var u=rad-d,band;if(u<-12||u>LAM*3)continue;if(u<0)band=1+u/12;else{var cw=Math.cos(u*6.283/LAM);band=cw>0?cw*Math.exp(-u/(LAM*1.6)):0}if(band<=0)continue;var a=band*band*(1-t)*r.s;
           if(a>k)k=a;if(d>0){ox+=dx/d*a*3;oy+=dy/d*a*3}}
         if(k<0.06)continue;
         g.globalAlpha=Math.min(0.42,k*0.6)*0.9;
@@ -532,7 +533,7 @@ footer{border-top:1px solid var(--rule);padding-block:28px 40px;display:flex;jus
       if(rings.length)kick();
     }
     function draw(){
-      raf=0;if(mob){drawRings();return}mask();
+      raf=0;mask();
       var e=reduce?0:step();
       if(!fgc)fgc=getComputedStyle(document.documentElement).getPropertyValue('--fg').trim();var fg=fgc;
       g.clearRect(0,0,W,H);g.fillStyle=fg;
@@ -557,16 +558,16 @@ footer{border-top:1px solid var(--rule);padding-block:28px 40px;display:flex;jus
     addEventListener('pointermove',function(e){if(e.pointerType==='touch'||reduce)return;wake(e.clientX,e.clientY)},{passive:true});
     // touch: dragging/scrolling leaves a wake like the cursor; a tap without movement makes the splash
     var ts=null,moved=false,lastDrop=0;
-    addEventListener('touchstart',function(e){if(reduce)return;var t=e.touches[0];ts={x:t.clientX,y:t.clientY};moved=false;lx=t.clientX;ly=t.clientY},{passive:true});
+    addEventListener('touchstart',function(e){if(reduce)return;var t=e.touches[0];ts={x:t.clientX,y:t.clientY};lastTX=t.clientX;lastTY=t.clientY;moved=false;lx=t.clientX;ly=t.clientY},{passive:true});
     addEventListener('touchmove',function(e){if(reduce||!ts)return;var t=e.touches[0];
       if(!moved&&Math.hypot(t.clientX-ts.x,t.clientY-ts.y)>10)moved=true;
-      var now=performance.now();
-      if(moved&&now-lastDrop>180){lastDrop=now;if(mob)ring(t.clientX,t.clientY,0.55);else drop(t.clientX,t.clientY,170,2.2)}},{passive:true});
-    addEventListener('touchend',function(){if(reduce||!ts)return;if(!moved){if(mob)ring(ts.x,ts.y,1);else drop(ts.x,ts.y,400,3.2)}ts=null;lx=null},{passive:true});
+      var now=performance.now();lastTX=t.clientX;lastTY=t.clientY;lastMove=now;
+      if(moved){lastDrop=now;wake(t.clientX,t.clientY)}},{passive:true});
+    addEventListener('touchend',function(){if(reduce||!ts)return;if(!moved)drop(ts.x,ts.y,400,3.2);ts=null;lx=null},{passive:true});
     addEventListener('touchcancel',function(){ts=null;lx=null},{passive:true});
     document.addEventListener('mouseleave',function(){lx=null});
     addEventListener('pointerdown',function(e){if(reduce||e.pointerType==='touch')return;drop(e.clientX,e.clientY,400,3.2)},{passive:true});
-    addEventListener('scroll',function(){if(mob?rings.length:idle<30)kick()},{passive:true});
+    addEventListener('scroll',function(){var now=performance.now();if(ts&&!reduce&&now-lastDrop>160&&now-lastMove>120){lastDrop=now;moved=true;drop(lastTX,lastTY,170,2.2)}if(idle<30)kick()},{passive:true});
     addEventListener('resize',size);
     new MutationObserver(function(){fgc=null;kick()}).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
     if(window.matchMedia){var m=matchMedia('(prefers-color-scheme: dark)');(m.addEventListener?m.addEventListener('change',kick):m.addListener(kick))}
