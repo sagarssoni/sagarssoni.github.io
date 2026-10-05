@@ -2,6 +2,17 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-TST1XQYXEL"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-TST1XQYXEL');
+</script>
+<link rel="canonical" href="https://sagarsoni.ai/">
+<meta property="og:url" content="https://sagarsoni.ai/">
+
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="description" content="Sagar Soni builds AI for places where getting it wrong isn't an option: production AI, three FDA-cleared products, and AI-native engineering teams.">
 <meta property="og:title" content="Sagar Soni">
@@ -121,7 +132,7 @@ section h2{font-size:clamp(26px,3.2vw,34px);line-height:1.15;margin-bottom:18px}
 .pattern{display:block;width:calc(100% + 44px);max-width:none;height:112px;margin:-22px -22px 8px;border-bottom:1px solid var(--rule);border-radius:4px 4px 0 0;background:var(--surface)}
 .pillars h3{font-size:20px}
 .pillars p{margin:0;font-size:16px}
-.pubs{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:34px 26px;margin-top:14px;padding:6px 10px 14px 8px}
+.pubs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:34px 26px;margin-top:14px;padding:6px 10px 14px 8px}
 .card.pub h3{font-size:16px;line-height:1.35}
 .card.pub p{font-size:15px;color:var(--muted)}
 .pub-link{margin-top:auto;padding-top:6px;display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:12.5px;color:var(--fg);text-decoration:none}
@@ -162,7 +173,7 @@ ul.points li::before{content:"";position:absolute;left:0;top:.72em;width:10px;he
 .tk-head p{margin:0;font-size:15px;color:var(--muted)}
 .toolbox .tags{margin-top:2px}
 .toolbox .tags span{background:var(--surface);color:var(--fg);font-size:12.5px;padding:4px 10px}
-@media (max-width:640px){.toolbox li{grid-template-columns:1fr}}
+@media (max-width:640px){.toolbox li{grid-template-columns:1fr}.pubs{grid-template-columns:1fr}}
 /* contact */
 .contact h2{font-size:clamp(28px,4vw,42px)}
 .linkedin{display:inline-flex;align-items:center;gap:10px;margin-top:22px;padding:10px 14px;border:1px solid var(--rule);border-radius:4px;background:var(--surface);color:var(--fg);text-decoration:none;font-family:var(--mono);font-size:14px}
@@ -557,6 +568,15 @@ footer{border-top:1px solid var(--rule);padding-block:28px 40px;display:flex;jus
     document.addEventListener('mouseleave',function(){c.classList.remove('on')});
     addEventListener('blur',function(){c.classList.remove('on')});
   })();
+
+  // analytics events (only fire when Google Analytics is loaded on the live site)
+  function track(name,params){try{if(window.gtag)gtag('event',name,params||{})}catch(e){}}
+  document.addEventListener('click',function(e){
+    var a=e.target.closest&&e.target.closest('a');if(!a)return;
+    if(a.classList.contains('linkedin'))track('linkedin_click');
+    else if(a.classList.contains('pub-link'))track('outbound_doc_click',{link_text:a.textContent.trim(),link_url:a.href});
+    else if(a.closest('.topnav'))track('nav_click',{section:a.getAttribute('href')});
+  });
   // contact form: inside a Claude artifact it saves to the page's private inbox;
   // on your own domain it posts to the form service in data-endpoint. Without either, it points to LinkedIn.
   (function(){
@@ -574,7 +594,7 @@ footer{border-top:1px solid var(--rule);padding-block:28px 40px;display:flex;jus
       }).catch(disable);
     }else if(endpoint){mode='http'}
     else{disable()}
-    function done(){form.reset();st.textContent='Sent. Thanks, I\'ll get back to you.';btn.disabled=false}
+    function done(){track('contact_form_submit');form.reset();st.textContent='Sent. Thanks, I\'ll get back to you.';btn.disabled=false}
     function fail(){btn.disabled=false;st.textContent='Couldn\'t send right now. Try again, or reach me on LinkedIn.'}
     form.addEventListener('submit',function(e){
       e.preventDefault();
